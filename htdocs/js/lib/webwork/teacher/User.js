@@ -6,7 +6,7 @@ webwork.User = Backbone.Model.extend({
         student_id: "",
         user_id: "",
         email_address: "",
-        permission: 0, //student
+        permission: {name: "student", value: 0}, //student
         status: "C", //enrolled
         section: "",
         recitation: "",
@@ -15,10 +15,12 @@ webwork.User = Backbone.Model.extend({
     },
 
     initialize: function(){
-        //console.log("in initialize");
+        this.on('change',this.update);
     },
 
     update: function(){
+        
+        console.log("in webwork.User update");
         var self = this;
         var requestObject = {
             "xml_command": 'editUser'
@@ -62,24 +64,32 @@ webwork.UserList = Backbone.Collection.extend({
         this.on('add', function(user){
             var self = this;
             var requestObject = {"xml_command": 'addUser'};
-            _.extend(requestObject, this.attributes);
             _.extend(requestObject, user.attributes);
             _.defaults(requestObject, webwork.requestObject);
-
+            
             $.post(webwork.webserviceURL, requestObject, function(data){
                 var response = $.parseJSON(data);
-                console.log(response);
             });
             
             }, this);
-        this.on('remove', function(user){}, this);
+        this.on('remove', function(user){
+            var request = {"xml_command": "deleteUser", "user_id" : user.user_id };
+	    _.defaults(request,webwork.requestObject);
+            _.extend(request, user.attributes);
+            console.log(request);
+	    $.post(webwork.webserviceURL,request,function (data) {
+                
+                console.log(data);
+                var response = $.parseJSON(data);
+                // see if the deletion was successful. 
+    
+               return (response.result_data.delete == "success")
+            });
+
+            
+        }, this);
         
-        // This is used to temporarily add a single (hard coded) student. 
-        this.on('addstudent',function(user){
-            var u = new webwork.User({"first_name":"Homer","last_name":"Simpson","user_id":"hsimp"});
-            this.add(u);
-        })
-    },
+       },
 
     fetch: function(){
         var self = this;
@@ -90,9 +100,8 @@ webwork.UserList = Backbone.Collection.extend({
 
         $.post(webwork.webserviceURL, requestObject, function(data){
             var response = $.parseJSON(data);
+            console.log(response);
             var users = response.result_data;
-
-            var newUsers = new Array();
             self.reset(users);
         });
     },
@@ -101,3 +110,48 @@ webwork.UserList = Backbone.Collection.extend({
     }
     
 });
+
+webwork.userProps = [{shortName: "user_id", longName: "Login Name"},
+                     {shortName: "first_name", longName: "First Name"},
+                     {shortName: "last_name", longName: "Last Name"},
+                     {shortName: "email_address", longName: "Email"},
+                     {shortName: "student_id", longName: "Student ID"},
+                     {shortName: "status", longName: "Status"},
+                     {shortName: "section", longName: "Section"},
+                     {shortName: "recitation", longName: "Recitation"},
+                     {shortName: "comment", longName: "Comment"},
+                     {shortName: "permission", longName: "Permission Level"},
+                     {shortName: "userpassword", longName: "Password"}];
+
+webwork.userTableHeaders = [
+                { name: "Select", datatype: "boolean", editable: true},
+		{ name: "Take Action", datatype: "string", editable: true,
+                    values: {"action0":"Take Action","action1":"Change Password",
+                        "action2":"Delete User","action3":"Act as User",
+                        "action4":"Student Progess","action5":"Email Student"}
+                },
+                { label: "Login Name", name: "user_id", datatype: "string", editable: false },
+                { name: "Login Status", datatype: "string", editable: false },
+                { name: "Assigned Sets", datatype: "integer", editable: false },
+                { label: "First Name", name: "first_name", datatype: "string", editable: true },
+                { label: "Last Name", name:"last_name", datatype: "string", editable: true },
+                { label: "Email Address", name: "email_address", datatype: "string", editable: true },
+                { label: "Student ID", name: "student_id", datatype: "string", editable: true },
+                { label: "Status", name: "status", datatype: "string", editable: true,
+                    values : {
+                        "en":"Enrolled",
+                        "noten":"Not Enrolled"
+                    }
+                },
+                { label: "Section", name: "section", datatype: "integer", editable: true },
+                { label: "Recitation", name: "recitation", datatype: "integer", editable: true },
+                { label: "Comment", name: "comment", datatype: "string", editable: true },
+                { label: "Permission Level", name: "permission", datatype: "integer", editable: true,
+                    values : {
+                        "-5":"guest","0":"Student","2":"login proctor",
+                        "3":"grade proctor","5":"T.A.", "10": "Professor",
+                        "20":"Admininistrator"
+		    }
+		}
+		
+            ];
