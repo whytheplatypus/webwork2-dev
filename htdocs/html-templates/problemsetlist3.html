@@ -1,4 +1,7 @@
 <div id="mainDiv">
+    <div id="help-pane"></div>
+    <div id="error-pane"></div>
+    <div id="announce-pane"></div>
     
 </div>
 
@@ -33,6 +36,55 @@
     
 </script>
 
+<script type="text/template" id="hwset-dates-tmpl">
+<table class="table">
+<thead><tr><th>Open Date</th><th>Due Date</th><th>Answer Date</th></tr></thead>
+<tbody><tr id="due-date-row"></tr>
+<tr><td>Number of Users Assigned</td>
+<td id="num-users-assigned"></td>
+</tr>
+</tbody>
+</table>
+<div class="row"><div id="left-date-footer" class="span4"><button class="btn" type="button" id="assign-to-all-users">Assign to All Users</button></div>
+<div id="right-date-footer" class="pull-right">
+<a href="#openUserDialog" role="button" class="btn" data-toggle="modal">Assign to Selected Users</a>
+</div></div>
+
+<div class="modal hide fade" id="openUserDialog" tabindex="-1" role="dialog" aria-labelledby="usersLabel" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="usersLabel"></h3>
+  </div>
+  <div class="modal-body" id="userListDialogMain">
+    
+<ul class="nav nav-tabs" id="assignUsersTab">
+  <li class="active"><a href="#byName">Assign by Name</a></li>
+  <li><a href="#bySection">Assign by Section</a></li>
+  <li><a href="#byRecitation">Assign by Recitation</a></li>
+  </ul>
+ 
+<div class="tab-content">
+  <div class="tab-pane active" id="byName"></div>
+  <div class="tab-pane" id="bySection"></div>
+  <div class="tab-pane" id="byRecitation"></div>
+  </div>
+
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-primary" id="assignUsersButton">Assign Selected Users</button>
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
+</script>
+
+<script type="text/template" id="calendarButtons">
+<div class="calendar-button-row">
+<button type="button" class="previous-week btn">Previous Week</button>
+<button type="button" class="next-week btn">Next Week</button>
+<button type="button" class="view-month btn">Month View</button>
+<button type="button" class="view-week btn">Week View</button>
+</div>
+</script>
 
 <script type="text/template" id="calendarHeader">
     <thead>
@@ -49,16 +101,13 @@
 <script type="text/template" id="settings-template">
     <p>The following are settings for the Homework Set Editor</p>
     
-    <table class="table table-bordered"><thead><tr><th>Property</th><th>Value</th></tr></thead>
-    <tbody>
-    <tr><td>Time All Assignments are Due</td><td></td></tr>
-    <tr><td>Set Open Date</td><td>?? days/weeks before Due Date</td></tr>
-    <tr><td>Set Answer Date</td><td> ?? days/weeks after Due Date</td></tr>
-    <tr><td>All Assignments have reduced credit</td><td>True/False</td></tr>
-    <tr><td>Set Reduced Credit Time</td> ?? days/weeks before/after Due Date </td></tr>
-    </tbody>
+    <table class="table table-bordered" id="settings-table"><thead><tr><th>Property</th><th>Value</th></tr></thead>
 </table>
     
+</script>
+
+<script type="text/template" id="selectedUsersHelp">
+<p>Assign the users and say more things here.</p>
 </script>
 
 <script type="text/template" id="HW-detail-template">
@@ -66,10 +115,22 @@
   <div class="accordion-group">
     <div class="accordion-heading">
       <a class="accordion-toggle" data-toggle="collapse" data-parent="#accord-HW-detail" href="#collapseOne">
+        Dates for Homework: 
+      </a>
+    </div>
+    <div id="collapseOne" class="accordion-body collapse in">
+      <div id='dates-for-hw-set' class="accordion-inner">
+      
+      </div>
+    </div>
+  </div>
+  <div class="accordion-group">
+    <div class="accordion-heading">
+      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accord-HW-detail" href="#collapseTwo">
         Homework Properties
       </a>
     </div>
-    <div id="collapseOne" class="accordion-body collapse">
+    <div id="collapseTwo" class="accordion-body collapse">
       <div class="accordion-inner">
         <table id='detail-table' class='table'><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody></tbody></table>
       </div>
@@ -77,11 +138,11 @@
   </div>
   <div class="accordion-group">
     <div class="accordion-heading">
-      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accord-HW-detail" href="#collapseTwo">
+      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accord-HW-detail" href="#collapseThree">
         Homework Problems
       </a>
     </div>
-    <div id="collapseTwo" class="accordion-body collapse in">
+    <div id="collapseThree" class="accordion-body collapse">
       <div class="accordion-inner">
       <div  id="hw-detail-problems"></div>
       </div>
@@ -90,4 +151,33 @@
 </div>
     
 </script>
+
+<script type="text/template" id="library-browser-template">
+<select id="library-selector" class="input-small">
+<option>View</option>
+<option>All Library Subjects</option>
+<option>The Problem Library</option>
+<option>and Search the Problem Library</option>
+<option>The Local Libraries</option>
+</select>
+<div id="library-viewer"></div>
+</script>
+
+
+<script type="text/template", id="problem-template">
+<%if(!remove_display){ %><div class="handle"><i class="icon-resize-vertical icon-large"></i></div><button type="button" class="remove">X</button><%}%>    <div class="problem" data-path="<%= path %>" ><%= data %></div></script>
+
+
+<script type="text/template", id="setList-template"></script>
+
+<script type="text/template", id="setName-template"><a data-problem_count=<%= problem_count %>><%= name %><span class="problem_count" style="float:right"><%= problem_count %></style></a></script>
+
+<script type="text/template", id="set-template"><h1>Problems</h1><ul class="list"></ul></script><script type="text/template", id="LibraryList-template"><select  class="<%= name %> list"><option value=null>Pick a Library</option></select><span class="<%= name %> children"></span></script>
+
+<script type="text/template", id="BrowseList-template">
+  <select  id="library_subject" class="list">
+    <option value=null>Subject</option><% _.each(library_subjects, function(name) { %> <option value="<%= name %>" <% if(name == library_subject){ %> selected="selected" <% } %> ><%= name %></option> <% }); %></select>
+    <select  id="library_chapter" class="list"><option value=null>Chapter</option><% _.each(library_chapters, function(name) { %> <option value="<%= name %>" <% if(name == library_chapter){ %> selected="selected" <% } %> ><%= name %></option> <% }); %></select><select  id="library_section" class="list"><option value=null>Section</option><% _.each(library_sections, function(name) { %> <option value="<%= name %>"  <% if(name == library_section){ %> selected="selected" <% } %>  ><%= name %></option> <% }); %></select><button class="btn btn-small load_browse_problems">Load Problems</button></script>
+
+<script type="text/template", id="Library-template"><h1>Problems</h1><ul class="list"></ul><span class="next_group" style="display:<%= enough_problems %>;">Load the next <%= group_size %> problems.</span></script>
 

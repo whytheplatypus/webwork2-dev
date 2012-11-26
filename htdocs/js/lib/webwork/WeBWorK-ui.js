@@ -3,6 +3,8 @@ define(['Backbone', 'underscore', 'XDate'], function(Backbone, _, XDate){
 
 var ui ={};
 
+/* In conjuction with the ui.ChangePasswordView, these Views provide basic ui interface for a password change. */
+
 ui.ChangePasswordRowView = Backbone.View.extend({
 	tagName: "tr",
 	className: "CPuserRow",
@@ -17,7 +19,7 @@ ui.ChangePasswordRowView = Backbone.View.extend({
 	render: function(){
             this.$el.html("<td> " + this.model.attributes.first_name + "</td><td>" + this.model.attributes.last_name + "</td><td>"
                           + this.model.attributes.user_id +" </td><td><input type='text' size='10' class='newPass'></input></td>");
-
+        
 	    return this; // for chainable calls, like .render().el
 	},
        updatePassword: function(evt){  
@@ -27,31 +29,6 @@ ui.ChangePasswordRowView = Backbone.View.extend({
 	}
     });
 
-
-ui.EmailStudentsView = Backbone.View.extend({
-	tagName: "div",
-	className: "emailDialog",
-	initialize: function() { _.bindAll(this,"render"); this.render(); return this;},
-   render: function ()
-   {
-        var self = this; 
-        this.$el.html(_.template($("#emailStudentTemplate").html(),this.model));
-	this.model.each(function (user){
-	$("#emailStudentList",self.$el).append(user.attributes.first_name + " " + user.attributes.last_name + ",");	
-		});
-	
-	
-        this.$el.dialog({autoOpen: false, modal: true, title: "Password Changes",
-			width: (0.75*window.innerWidth), height: (0.75*window.innerHeight),
-                        buttons: {"Send Email": function () {self.sendEmail(); self.$el.dialog("close")},
-                                  "Cancel": function () {self.$el.dialog("close");}}
-                        });
-   },
-   sendEmail: function ()
-   {
-	
-   }
-});
 
 ui.ChangePasswordView = Backbone.View.extend({
     tagName: "div",
@@ -71,6 +48,7 @@ ui.ChangePasswordView = Backbone.View.extend({
                         buttons: {"Save New Passwords": function () {self.savePasswords(); self.$el.dialog("close")},
                                   "Cancel": function () {self.$el.dialog("close");}}
                         });
+
    },
    savePasswords: function () {
         this.model.each(function(user) {user.change();});
@@ -79,24 +57,201 @@ ui.ChangePasswordView = Backbone.View.extend({
    
 });
 
-/* This is a class of closeable Divs that take functionality from Boostrap-alert.  See http://twitter.github.com/bootstrap/javascript.html#alerts */
+/* 
+This is a table row that contains a key-value pair generally for a set of properties.  The property description is passed in 
+the description field and the value in the value field.  For example:
 
-ui.Closeable = Backbone.View.extend({
+new ui.EditableRow({description: "How long is the piece of string": value: "6 inches"});
+*/
+
+ui.EditableRow = Backbone.View.extend({
+    tagName: "tr",
+    initialize: function () {
+        _.bindAll(this, 'render');
+        _.extend(this,this.options);
+        this.render();
+    },
+    render: function () {
+         this.$el.append("<td class='srv-name'> " + this.model["descriptions"][this.property] + "</td> ");
+         var ec = new ui.EditableCell({model: this.model, property: this.property});
+
+         this.$el.append(ec.render().el);
+    }
+
+});
+
+
+
+ui.EditableCell = Backbone.View.extend({
+        tagName: "td",
+        initialize: function () {
+            _.bindAll(this, 'render','editString','editDate','editTime');  // include all functions that need the this object
+            _.extend(this,this.options);
+        },
+        render: function () {
+            switch(this.model["types"][this.property]){
+            case "datetime":
+                var re = /(\d?\d\/\d?\d\/\d{4})\sat\s(\d?\d:\d\d[aApP][mM])\s\w{3}/;
+                var dt = re.exec(this.model.get(this.property));
+                this.$el.html("<span class='edit-date'>" + dt[1] + "</span> at <span class='edit-time'>" + dt[2] +"</span>"); 
+                break;   
+            default:
+                this.$el.html("<span class='srv-value'> " + this.model.get(this.property) + "</span>");
+            }
+            return this;
+            
+        },
+        events: {"click .srv-value": "editString",
+                "click .edit-date": "editDate",
+                "click .edit-time": "editString"
+        },
+        editString: function (event) {
+            var self = this;
+            var tableCell = $(event.target);
+            var currentValue = tableCell.html();
+            tableCell.html("<input class='srv-edit-box' size='20' type='text'></input>");
+            var inputBox = this.$(".srv-edit-box");
+            inputBox.focus();
+            inputBox.val(currentValue);
+            inputBox.click(function (event) {event.stopPropagation();});
+            this.$(".srv-edit-box").focusout(function() {
+                tableCell.html(inputBox.val());
+                self.model.set("value",inputBox.val());  // should validate here as well.  
+                
+                // need to also set the property on the server or 
+                }); 
+        },
+        editDate: function(event) {
+            var self = this;
+            var tableCell = $(event.target);
+            var currentValue = tableCell.html();
+            tableCell.html("<input class='srv-edit-box' size='10' type='text'></input>");
+            var inputBox = this.$(".srv-edit-box");
+            inputBox.val(currentValue);
+            inputBox.focus();
+            inputBox.datepicker().on("changeDate",function (event){
+                var _wwdate = inputBox.val() + " at " + self.$(".edit-time").text() + " EDT";
+                console.log(_wwdate);
+                var valid = self.model.preValidate(self.property,_wwdate);
+
+                if (self.model.isValid(self.property)) {
+                    inputBox.datepicker("hide");
+                    tableCell.html(inputBox.val());
+                    self.model.set(self.property,_wwdate);
+                } else
+                {
+                    console.log(valid);
+                }
+
+            });
+            inputBox.datepicker("show");
+            //inputBox.datepicker({autoclose: true});
+            //inputBox.click(function (event) {event.stopPropagation();});
+            this.$(".srv-edit-box").focusout(function() {
+                
+                inputBox.datepicker("hide");
+
+                }); 
+           
+        },
+        editTime: function() {
+
+        }
+        
+        
+        });
+
+/* 
+  This view displays all key/value pairs in an object.  There is no nesting of properties and the descriptions are 
+  listed in a descriptions field of the object.  For example, a small propertylist would be
+
+  var PropertyList = {key1: "value1", key2: "value2", key3: "value3", descriptions:
+    key1: "This describes key1", key2: "This describes key2", key3: "This describes key3"}}; 
+*/
+    
+    ui.PropertyListView = Backbone.View.extend({
+        className: "settings-view",
+        initialize: function () {
+            _.bindAll(this, 'render');  // include all functions that need the this object
+            _.extend(this, this.options);
+            this.render();
+        },
+        render: function () {
+            var self = this;
+            var props = _(this.model["descriptions"]).map(function (_value,_key) {return _key;});  // array of all of the keys
+            this.$el.html("<table class='table bordered-table'><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody></tbody></table>");
+            var tab = this.$("table");
+            if (this.showProperties){
+                props = _(props).intersection(this.showProperties);
+
+            }
+             _(props).each(function(_prop){
+                var row = new ui.EditableRow({model: self.model, property: _prop} ); 
+                //description: self.model.get("descriptions")[_prop], 
+                  //      key: _prop , value: self.mdoel.get(_prop)});
+                tab.append(row.el);
+            });
+           
+        }
+        });
+
+
+
+/* This is the ui for sending email.  As of 10/2012, it's a shell that doesn't do anything.  */
+
+ui.EmailStudentsView = Backbone.View.extend({
+    tagName: "div",
+    className: "emailDialog",
+    initialize: function() { _.bindAll(this,"render"); this.render(); return this;},
+   render: function ()
+   {
+        var self = this; 
+        this.$el.html(_.template($("#emailStudentTemplate").html(),this.model));
+    this.model.each(function (user){
+    $("#emailStudentList",self.$el).append(user.attributes.first_name + " " + user.attributes.last_name + ","); 
+        });
+    
+    
+        this.$el.dialog({autoOpen: false, modal: true, title: "Password Changes",
+            width: (0.75*window.innerWidth), height: (0.75*window.innerHeight),
+                        buttons: {"Send Email": function () {self.sendEmail(); self.$el.dialog("close")},
+                                  "Cancel": function () {self.$el.dialog("close");}}
+                        });
+   },
+   sendEmail: function ()
+   {
+    
+   }
+});
+
+
+
+/* This is a class of closeable Divs that take functionality from Boostrap-alert.  See http://twitter.github.com/bootstrap/javascript.html#alerts 
+
+
+*/
+
+/*ui.Closeable = Backbone.View.extend({
     className: "closeablePane",
     text: "",
     display: "none",
     initialize: function(){
-	var self = this; 
-	_.bindAll(this, 'render','setHTML','close','clear','appendHTML','open'); // every function that uses 'this' as the current object should be in here
-        if (this.options.text !== undefined) {this.text = this.options.text;}
-        if (this.options.display !== undefined) {this.display = this.options.display;}
-	this.$el.addClass("alert");
-	_(this.options.classes).each(function (cl) {self.$el.addClass(cl);});
-	
-	this.render();
-	
-	this.isOpen = false; 
-        return this;
+    	var self = this; 
+    	_.bindAll(this, 'render','setHTML','close','clear','appendHTML','open'); // every function that uses 'this' as the current object should be in here
+        _.extend(this,this.options);    
+        this.$el.addClass("alert");
+    	_(this.options.classes).each(function (cl) {self.$el.addClass(cl);});
+    	
+
+        if (localStorage.getItem("closeHelpClicks")===null)
+        {
+            localStorage.setItem("closeHelpClicks","0")
+        }
+
+    	this.render();
+    	
+    	this.isOpen = false; 
+            return this;
     },
     events: {
 	'click button.close': 'close'
@@ -105,13 +260,30 @@ ui.Closeable = Backbone.View.extend({
             this.$el.html("<div class='row-fluid'><div class='span11 closeable-text'></div><div class='span1 pull-right'>" +
                           " <button type='button' class='close'>&times;</button></div></div>");
             this.$(".closeable-text").html(this.text);
-            this.$el.css("display",this.display);
+
+            if ((this.closeableType === "Help") && (parseInt(localStorage.getItem("closeHelpClicks")) > 3)){
+                this.$el.css("display","none");
+            } else {
+                this.$el.css("display",this.display);
+            }
             
 	    return this; // for chainable calls, like .render().el
 	},
     close: function () {
-	this.isOpen = false; 
+        this.isOpen = false; 
         var self = this;
+        if (this.closeableType === "Help") {
+            var clicks = parseInt(localStorage.getItem("closeHelpClicks")) +1;
+            localStorage.setItem("closeHelpClicks",""+clicks);
+            if (clicks >3) {
+                alert("You have closed the Help Menu more that three times. " +
+                    " For convenience, we will not autoopen this.  You can reopen Help with the Help Button" +
+                    " at the top of the page.");
+            }
+
+        }
+
+
         this.$el.fadeOut("slow", function () { self.$el.css("display","none"); });
     },
     setHTML: function (str) {
@@ -233,7 +405,7 @@ ui.CalendarView = Backbone.View.extend({
             return this;   
         }
     });
-    
+    */
 
 
 /* This is the class webwork.WebPage that sets the framework for all webwork webpages */
@@ -245,6 +417,17 @@ ui.WebPage = Backbone.View.extend({
 //         this.announceView = new ui.CloseableDiv({border: "2px solid darkgreen", background: "lightgreen"});
 //         this.helpView = new ui.CloseableDiv();
         },
+    render: function () {
+                // Create an announcement pane for successful messages.
+        
+        this.announce = new ui.Closeable({el:$("#announce-pane"),classes: ["alert-success"]});
+        
+        
+        // Create an announcement pane for successful messages.
+        
+        this.errorPane = new ui.Closeable({el:$("#error-pane"),classes: ["alert-error"]});
+
+    }
     });
 
 return ui;

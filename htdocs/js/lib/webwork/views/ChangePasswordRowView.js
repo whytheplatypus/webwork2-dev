@@ -1,4 +1,4 @@
-define(['Backbone', 'underscore'], function(Bacbone, _){
+define(['Backbone', 'underscore'], function(Backbone, _){
 	ChangePasswordRowView = Backbone.View.extend({
 		tagName: "tr",
 		className: "CPuserRow",
